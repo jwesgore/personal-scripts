@@ -1,47 +1,65 @@
+'''
+script for batch renaming movie files and moving them to movies folder
+'''
+
 import os, sys, re, shutil, subprocess
 from pathlib import Path
 
-def check_title(title:str):
+movies_folder = Path('D:\Movies')
+extensions = ['.mkv','.mp4','.avi']
+convert_if_extension = ['.avi']
+
+def check_title(title:str) -> str:
+    '''special checks for errors in title'''
     # check if title has ( at end
     if title[-1] == "(":
         title = title[:-1]
     return title
 
-def convert(file: Path, extension = ".mp4"):
-    new_file = f"{file.stem}{extension}"
-    subprocess.run(f'ffmpeg -i "{file.name}" "{new_file}"', cwd=file.parent)
-    return Path(file.parent / new_file)
+def convert(movie_path: Path, extension = ".mp4") -> Path:
+    '''convert movie to different file format using ffmpeg'''
+    new_file = f"{movie_path.stem}{extension}"
+    subprocess.run(f'ffmpeg -i "{movie_path.name}" "{new_file}"', cwd=movie_path.parent)
+    return movie_path.parent / new_file
 
-def move_movie(dir):
-
-    extensions = ['.mkv','.mp4','.avi']
-    movies_folder = Path('D:\Movies')
-    input_folder = Path(dir)
-    os.chdir(input_folder)
+def input_is_directory(input_folder:Path) -> Path:
+    '''search directory for movie file if movie is dir'''
 
     for extension in extensions:
         search = list(input_folder.glob(f"*{extension}"))
         if len(search) > 0:
-            file_path = search[0]
-            break
+            return search[0]
 
-    movie_year = re.search("\d\d\d\d", file_path.name)[0]
-    movie_title = file_path.name.split(movie_year)[0].replace(".", " ")
+def move_movie(arg:Path):
+
+    if arg.is_dir():
+        movie_file = input_is_directory(arg)
+    else:
+        movie_file = arg
+    os.chdir(movie_file.parent)
+
+    # build new movie name
+    movie_year = re.search("\d\d\d\d", movie_file.name)[0]
+    movie_title = movie_file.name.split(movie_year)[0].replace(".", " ")
     movie_title = check_title(movie_title)
+    movie_rename = movie_title + "(" + movie_year + ")" + movie_file.suffix
 
-    movie_rename = movie_title + "(" + movie_year + ")" + extension
-    file_path.rename(movie_rename)
-    file_path = input_folder / movie_rename
+    # rename file
+    movie_file = movie_file.parent / movie_file.rename(movie_rename)
 
-    if extension in ['.avi']:
-        file_path = convert(file_path)
+    # convert file
+    if movie_file.suffix in convert_if_extension:
+        movie_file = convert(movie_file)
+   
+    # move file and delete parent dir
+    shutil.move(movie_file, movies_folder)
+    
+    if arg.is_dir():
+        os.chdir(movie_file.parents[1])
+        shutil.rmtree(movie_file.parent)
 
-    shutil.move(file_path, movies_folder)
-    os.chdir(input_folder.parent)
-    shutil.rmtree(input_folder)
-
-    print("Done: ", file_path.name)
+    print("Done: ", movie_file.name)
 
 if __name__ == '__main__':
-    for folder in sys.argv[1:]:
-        move_movie(folder)
+    for arg in sys.argv[1:]:
+        move_movie(Path(arg))
