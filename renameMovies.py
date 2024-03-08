@@ -56,11 +56,12 @@ def move_movie(arg:Path):
     movie_title = check_title(movie_title)
     movie_rename = movie_title + "(" + movie_year + ")" + movie_file.suffix
 
+
     # rename file
     movie_file = movie_file.parent / movie_file.rename(movie_rename)
-    
+
     if subtitle_track:
-        subtitle_track = subtitle_track.parent / subtitle_track.rename(movie_file.stem)
+        subtitle_track = subtitle_track.parent / subtitle_track.rename(movie_file.stem + ".srt")
 
     # convert file
     if movie_file.suffix in convert_if_extension:
