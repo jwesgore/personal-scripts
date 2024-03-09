@@ -8,8 +8,8 @@ import os, sys, yaml, re, shutil, subprocess, requests
 from pathlib import Path
 
 movies_folder = Path('D:\Movies')
-extensions = ['.mkv','.mp4','.avi']
-convert_if_extension = ['.avi']
+extensions = ['.mkv','.mp4','.avi', '.wmv']
+convert_if_extension = ['.avi', '.wmv']
 convert_to_extension = ".mp4"
 
 def plex_update_libraries():
