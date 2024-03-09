@@ -2,10 +2,9 @@
 script for batch renaming movie files and moving them to movies folder
 '''
 
-import os, sys, re, shutil, subprocess
+import os, sys, yaml, re, shutil, subprocess, requests
 from pathlib import Path
 
-plex_media_scanner = Path("D:\Program Files (x86)\Plex\Plex Media Server\Plex Media Scanner.exe")
 movies_folder = Path('D:\Movies')
 extensions = ['.mkv','.mp4','.avi']
 convert_if_extension = ['.avi']
@@ -13,10 +12,10 @@ convert_to_extension = ".mp4"
 
 def plex_update_libraries():
     '''atttempt to run "Update Libraries" on Plex'''
-    try:
-        subprocess.run(f"{plex_media_scanner} -s")
-    except:
-        print("Ran into error updating Plex")
+    with open("plex_data.yml") as f:
+        plex_data = yaml.load(f, Loader=yaml.FullLoader)
+    url = f"{plex_data['plex_address']}/library/sections/1/refresh?X-Plex-Token={plex_data['plex_token']}"
+    requests.get(url)
 
 def check_title(title:str) -> str:
     '''special checks for errors in title'''
@@ -91,4 +90,7 @@ def move_movie(arg:Path):
 if __name__ == '__main__':
     for arg in sys.argv[1:]:
         move_movie(Path(arg))
-    plex_update_libraries()
+    try:
+        plex_update_libraries()
+    except:
+        print("Error encountered while updating Plex library")
