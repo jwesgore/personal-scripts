@@ -5,9 +5,18 @@ script for batch renaming movie files and moving them to movies folder
 import os, sys, re, shutil, subprocess
 from pathlib import Path
 
+plex_media_scanner = Path("D:\Program Files (x86)\Plex\Plex Media Server\Plex Media Scanner.exe")
 movies_folder = Path('D:\Movies')
 extensions = ['.mkv','.mp4','.avi']
 convert_if_extension = ['.avi']
+convert_to_extension = ".mp4"
+
+def plex_update_libraries():
+    '''atttempt to run "Update Libraries" on Plex'''
+    try:
+        subprocess.run(f"{plex_media_scanner} -s")
+    except:
+        print("Ran into error updating Plex")
 
 def check_title(title:str) -> str:
     '''special checks for errors in title'''
@@ -16,9 +25,9 @@ def check_title(title:str) -> str:
         title = title[:-1]
     return title
 
-def convert(movie_path: Path, extension = ".mp4") -> Path:
+def convert(movie_path: Path) -> Path:
     '''convert movie to different file format using ffmpeg'''
-    new_file = f"{movie_path.stem}{extension}"
+    new_file = f"{movie_path.stem}{convert_to_extension}"
     subprocess.run(f'ffmpeg -i "{movie_path.name}" "{new_file}"', cwd=movie_path.parent)
     return movie_path.parent / new_file
 
@@ -56,7 +65,6 @@ def move_movie(arg:Path):
     movie_title = check_title(movie_title)
     movie_rename = movie_title + "(" + movie_year + ")" + movie_file.suffix
 
-
     # rename file
     movie_file = movie_file.parent / movie_file.rename(movie_rename)
 
@@ -83,3 +91,4 @@ def move_movie(arg:Path):
 if __name__ == '__main__':
     for arg in sys.argv[1:]:
         move_movie(Path(arg))
+    plex_update_libraries()
