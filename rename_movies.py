@@ -4,23 +4,41 @@ required that yaml and requests libraries are installed, can be installed with p
 required that ffmpeg is installed for conversion, can be installed with winget
 '''
 
-import os, sys, yaml, re, shutil, subprocess, requests
+import os, sys, yaml, re, shutil, subprocess, requests, argparse, time
 from pathlib import Path
 
-movies_folder = Path('D:\Movies')
+parser = argparse.ArgumentParser()
+parser.add_argument("-d", "--drive", type=lambda x: x if x.isalpha() and len(x) == 1 else False, default="d")
+parser.add_argument("-f", "--folder", type=str, default="")
+args, unknownargs = parser.parse_known_args()
+
+drive_letter = args.drive
+subfolder = args.folder
+                       
 extensions = ['.mkv','.mp4','.avi', '.wmv']
 convert_if_extension = ['.avi', '.wmv']
 convert_to_extension = ".mp4"
 
-def plex_update_libraries():
+def get_movies_folder() -> Path:
+    '''Gets the path to place the movies at'''
+    movies_folder = Path(f'{drive_letter.capitalize()}:\Movies\{subfolder}')
+    if not movies_folder.exists():
+        raise FileNotFoundError(f"The path '{movies_folder}' does not exist.")
+    else:
+        return movies_folder
+
+
+def plex_update_libraries() -> bool:
     '''atttempt to run "Update Libraries" on Plex'''
     try:
         with open("plex_data.yml") as f:
             plex_data = yaml.load(f, Loader=yaml.FullLoader)
         url = f"{plex_data['plex_address']}/library/sections/1/refresh?X-Plex-Token={plex_data['plex_token']}"
         requests.get(url)
+        return True
     except:
         print("Error encountered while updating Plex library")
+        return False
     
 def check_title(title:str) -> str:
     '''special checks for errors in title'''
@@ -55,10 +73,9 @@ def get_subtitle_track(input_file:Path):
         return False
     
 def move_movie(arg:Path):
-
     # search for movie file and subtitles
     if arg.is_dir():
-        movie_file = input_is_directory(arg)
+        movie_file =  (arg)
     else:
         movie_file = arg
 
@@ -83,19 +100,24 @@ def move_movie(arg:Path):
         movie_file = convert(movie_file)
    
     # move file and subtitle track
-    shutil.move(movie_file, movies_folder)
+    try:
+        shutil.move(movie_file, movies_folder)
 
-    if subtitle_track:
-        shutil.move(subtitle_track, movies_folder)
+        if subtitle_track:
+            shutil.move(subtitle_track, movies_folder)
 
-    # delete parent dir if input is dir
-    if arg.is_dir():
-        os.chdir(movie_file.parents[1])
-        shutil.rmtree(movie_file.parent)
-
-    print("Done: ", movie_file.name)
+        # delete parent dir if input is dir
+        if arg.is_dir():
+            os.chdir(movie_file.parents[1])
+            shutil.rmtree(movie_file.parent)
+        
+        print("Done: ", movie_file.name)
+    except Exception as e:
+        print("Problem Moving: ", movie_file.name)
+        print("\t", e)
 
 if __name__ == '__main__':
-    for arg in sys.argv[1:]:
+    movies_folder = get_movies_folder()
+    for arg in unknownargs:
         move_movie(Path(arg))
     plex_update_libraries()
