@@ -75,7 +75,7 @@ def get_subtitle_track(input_file:Path):
 def move_movie(arg:Path):
     # search for movie file and subtitles
     if arg.is_dir():
-        movie_file =  (arg)
+        movie_file = input_is_directory(arg)
     else:
         movie_file = arg
 
